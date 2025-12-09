@@ -1,71 +1,34 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const chatbotToggler = document.querySelector(".chatbot-toggler");
-    const closeBtn = document.querySelector(".close-btn");
-    const chatbox = document.querySelector(".chatbox");
-    const chatInput = document.querySelector(".chat-input textarea");
-    const sendChatBtn = document.querySelector(".chat-input span");
+document.addEventListener('DOMContentLoaded', function () {
+  const form = document.getElementById('chat-form');
+  const input = document.getElementById('chat-input');
+  const messagesContainer = document.getElementById('chat-messages');
 
-    // 1. SOLIS: Izveidot mainīgo sarunas vēstures glabāšanai.
+  let history = [];
 
-    const createChatLi = (message, className) => {
-        const chatLi = document.createElement("li");
-        chatLi.classList.add("chat", className);
-        let chatContent = className === "outgoing" ? `<p></p>` : `<span class="material-symbols-outlined">smart_toy</span><p></p>`;
-        chatLi.innerHTML = chatContent;
-        chatLi.querySelector("p").textContent = message;
-        return chatLi;
-    }
+  function appendMessage(role, text) {
+    const el = document.createElement('div');
+    el.className = role === 'user' ? 'chat-msg user' : 'chat-msg bot';
+    el.textContent = text;
+    messagesContainer.appendChild(el);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  }
 
-    // 2. SOLIS: Implementēt funkciju, kas sazinās ar serveri.
-    const generateResponse = (incomingChatLi) => {
-        const API_URL = "/chatbot";
-        const messageElement = incomingChatLi.querySelector("p");
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const message = input.value.trim();
+    if (!message) return;
 
-        // TODO: Sagatavot pieprasījuma opcijas (request options)
-        // Izveidojiet JSON virknes objektu, kas satur gan pēdējo lietotāja ziņu, gan visu iepriekšējo sarunas vēsturi.
-        const requestOptions = {
-        };
+    appendMessage('user', message);
+    input.value = '';
+    history.push({role: 'user', content: message});
 
-        // TODO: Izsaukt `fetch()` ar izveidotajām opcijām.
-        // Pēc atbildes saņemšanas:
-        // 1. Atjaunojiet `messageElement` saturu ar saņemto atbildi.
-        // 2. Pievienojiet bota atbildi mainīgajā sarunas vēstures glabāšanai.
-    }
-
-    const handleChat = () => {
-        const userMessage = chatInput.value.trim();
-        if(!userMessage) return;
-
-        chatInput.value = "";
-        chatInput.style.height = `auto`;
-
-        chatbox.appendChild(createChatLi(userMessage, "outgoing"));
-        chatbox.scrollTo(0, chatbox.scrollHeight);
-        
-        // 3. SOLIS: Pievienot lietotāja ziņu mainīgajā sarunas vēstures glabāšanai
-        // TODO: Pievienojiet ziņu masīvam pareizajā formātā (kā objektu ar "role" un "content").
-        
-        setTimeout(() => {
-            const incomingChatLi = createChatLi("Thinking...", "incoming");
-            chatbox.appendChild(incomingChatLi);
-            chatbox.scrollTo(0, chatbox.scrollHeight);
-            generateResponse(incomingChatLi);
-        }, 600);
-    }
-
-    chatInput.addEventListener("input", () => {
-        chatInput.style.height = `auto`;
-        chatInput.style.height = `${chatInput.scrollHeight}px`;
+    const res = await fetch('/chatbot', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({message: message, history: history})
     });
-
-    chatInput.addEventListener("keydown", (e) => {
-        if(e.key === "Enter" && !e.shiftKey && window.innerWidth > 800) {
-            e.preventDefault();
-            handleChat();
-        }
-    });
-
-    sendChatBtn.addEventListener("click", handleChat);
-    closeBtn.addEventListener("click", () => document.body.classList.remove("show-chatbot"));
-    chatbotToggler.addEventListener("click", () => document.body.classList.toggle("show-chatbot"));
+    const data = await res.json();
+    appendMessage('bot', data.response);
+    history.push({role: 'assistant', content: data.response});
+  });
 });

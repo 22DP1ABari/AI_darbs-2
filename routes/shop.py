@@ -6,6 +6,23 @@ from forms import AddToCartForm, CheckoutForm
 
 shop_bp = Blueprint('shop', __name__, template_folder='../templates')
 
+from chatbot_integration.chatbot_service import get_chatbot_response
+
+@shop_bp.route('/chatbot', methods=['POST'])
+def chatbot():
+    data = request.get_json() or {}
+    message = data.get("message", "")
+    history = data.get("history", [])
+    
+    products = [
+        {"name": "Laptop", "price": 1000, "short_description": "Spēcīgs portatīvais dators"},
+        {"name": "Mouse", "price": 25, "short_description": "Bezvadu pele"}
+    ]
+    
+    answer = get_chatbot_response(message, history, products)
+    return jsonify({"response": answer})
+
+
 def get_products_from_db():
     """
     Fetches all products from the database and formats them into a simple string for the LLM.
